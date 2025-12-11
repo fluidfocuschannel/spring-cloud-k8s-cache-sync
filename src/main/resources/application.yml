@@ -7,7 +7,8 @@ spring:
       discovery:
         enabled: true
         all-namespaces: false  # Only discover services in the same namespace
-        include-pod-name: true # Add pod.name to metadata
+        use-endpoints: true     # Fetch Endpoints so pod metadata is available
+        include-pod-name: true  # Add pod.name to metadata
         metadata:
           add-labels: true            # Include service labels
           add-annotations: true       # Include service annotations

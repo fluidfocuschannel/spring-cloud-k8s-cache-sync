@@ -49,6 +49,10 @@ public class CacheSyncService {
         log.info("Found {} instances of service: {}", instances.size(), applicationName);
         
         for (ServiceInstance instance : instances) {
+            // Debug: log raw instance details
+            log.debug("Processing instance - Host: {}, InstanceId: {}, Metadata: {}", 
+                    instance.getHost(), instance.getInstanceId(), instance.getMetadata());
+            
             String podName = resolvePodName(instance);
             String labels = describeMetadata(instance);
             try {
@@ -83,6 +87,10 @@ public class CacheSyncService {
         log.info("Evicting all caches on {} instances", instances.size());
         
         for (ServiceInstance instance : instances) {
+            // Debug: log raw instance details
+            log.debug("Processing instance - Host: {}, InstanceId: {}, Metadata: {}", 
+                    instance.getHost(), instance.getInstanceId(), instance.getMetadata());
+            
             String podName = resolvePodName(instance);
             String labels = describeMetadata(instance);
             try {
