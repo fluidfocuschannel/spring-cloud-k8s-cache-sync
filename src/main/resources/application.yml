@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: cache-sync-service
+  
+  cloud:
+    kubernetes:
+      discovery:
+        enabled: true
+        all-namespaces: false  # Only discover services in the same namespace
+        
+      # Configuration for Kubernetes client
+      client:
+        namespace: default  # Can be overridden by environment variable
+        
+  # Cache configuration
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=10m
+
+# Actuator configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,caches
+      base-path: /actuator
+  endpoint:
+    caches:
+      enabled: true
+    health:
+      enabled: true
+      show-details: when-authorized
+  
+  # Health indicators
+  health:
+    kubernetes:
+      enabled: true
+
+# Server configuration
+server:
+  port: 8080
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.example.cachesync: DEBUG
+    org.springframework.cloud.kubernetes: DEBUG
+    org.springframework.cache: DEBUG
+
+# Cache sync configuration
+cache:
+  sync:
+    timeout: 5  # Timeout in seconds for cache sync operations
