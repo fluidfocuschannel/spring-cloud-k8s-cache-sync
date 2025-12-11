@@ -9,8 +9,10 @@ spring:
         all-namespaces: false  # Only discover services in the same namespace
         include-pod-name: true # Add pod.name to metadata
         metadata:
-          add-labels: true     # Include pod labels in metadata
-          add-annotations: true
+          add-labels: true            # Include service labels
+          add-annotations: true       # Include service annotations
+          add-pod-labels: true        # Include pod labels (needed for pod.name)
+          add-pod-annotations: true   # Include pod annotations
         
       # Configuration for Kubernetes client
       client:
