@@ -11,6 +11,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Service for synchronizing cache eviction across all pod instances.
@@ -48,6 +49,8 @@ public class CacheSyncService {
         log.info("Found {} instances of service: {}", instances.size(), applicationName);
         
         for (ServiceInstance instance : instances) {
+            String podName = resolvePodName(instance);
+            String labels = describeMetadata(instance);
             try {
                 String url = buildCacheUrl(instance, cacheName, cacheKey);
                 
@@ -58,16 +61,15 @@ public class CacheSyncService {
                     .toBodilessEntity()
                     .timeout(Duration.ofSeconds(timeoutSeconds))
                     .onErrorResume(e -> {
-                        log.error("Failed to evict cache on pod: {} - {}", 
-                                instance.getInstanceId(), e.getMessage());
+                        log.error("Failed to evict cache on pod: {} - {}", podName, e.getMessage());
                         return Mono.empty();
                     })
                     .block();
                     
-                log.info("Cache {} evicted on pod: {} ({})", 
-                        cacheName, instance.getInstanceId(), instance.getUri());
+                log.info("Cache {} evicted on pod: {} (uri={}, metadata={})", 
+                        cacheName, podName, instance.getUri(), labels);
             } catch (Exception e) {
-                log.error("Failed to evict cache on pod: {}", instance.getInstanceId(), e);
+                log.error("Failed to evict cache on pod: {}", podName, e);
             }
         }
     }
@@ -81,6 +83,8 @@ public class CacheSyncService {
         log.info("Evicting all caches on {} instances", instances.size());
         
         for (ServiceInstance instance : instances) {
+            String podName = resolvePodName(instance);
+            String labels = describeMetadata(instance);
             try {
                 String url = instance.getUri() + "/actuator/caches";
                 
@@ -91,16 +95,15 @@ public class CacheSyncService {
                     .toBodilessEntity()
                     .timeout(Duration.ofSeconds(timeoutSeconds))
                     .onErrorResume(e -> {
-                        log.error("Failed to evict all caches on pod: {} - {}", 
-                                instance.getInstanceId(), e.getMessage());
+                        log.error("Failed to evict all caches on pod: {} - {}", podName, e.getMessage());
                         return Mono.empty();
                     })
                     .block();
                     
-                log.info("All caches evicted on pod: {} ({})", 
-                        instance.getInstanceId(), instance.getUri());
+                log.info("All caches evicted on pod: {} (uri={}, metadata={})", 
+                        podName, instance.getUri(), labels);
             } catch (Exception e) {
-                log.error("Failed to evict all caches on pod: {}", instance.getInstanceId(), e);
+                log.error("Failed to evict all caches on pod: {}", podName, e);
             }
         }
     }
@@ -118,5 +121,27 @@ public class CacheSyncService {
             baseUrl += "?key=" + cacheKey;
         }
         return baseUrl;
+    }
+
+    private String resolvePodName(ServiceInstance instance) {
+        Map<String, String> metadata = instance.getMetadata();
+        if (metadata != null) {
+            String podName = metadata.get("pod.name");
+            if (podName != null && !podName.isBlank()) {
+                return podName;
+            }
+        }
+        if (instance.getInstanceId() != null && !instance.getInstanceId().isBlank()) {
+            return instance.getInstanceId();
+        }
+        return instance.getHost();
+    }
+
+    private String describeMetadata(ServiceInstance instance) {
+        Map<String, String> metadata = instance.getMetadata();
+        if (metadata == null || metadata.isEmpty()) {
+            return "{}";
+        }
+        return metadata.toString();
     }
 }

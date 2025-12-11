@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.net.URI;
@@ -47,66 +48,57 @@ class CacheSyncServiceTest {
     private ServiceInstance serviceInstance2;
 
     private CacheSyncService cacheSyncService;
+    private static final String TEST_APP_NAME = "cache-sync-service";
 
     @BeforeEach
     void setUp() {
         cacheSyncService = new CacheSyncService(discoveryClient, webClientBuilder);
+        ReflectionTestUtils.setField(cacheSyncService, "applicationName", TEST_APP_NAME);
     }
 
     @Test
     @DisplayName("Should discover all pods and trigger cache eviction")
     void testEvictCacheOnAllPods() {
-        String cacheName = "products";
-        
-        when(serviceInstance1.getUri()).thenReturn(URI.create("http://pod1:8080"));
-        when(serviceInstance1.getInstanceId()).thenReturn("pod1");
-        when(serviceInstance2.getUri()).thenReturn(URI.create("http://pod2:8080"));
-        when(serviceInstance2.getInstanceId()).thenReturn("pod2");
-        
-        when(discoveryClient.getInstances(anyString()))
+        when(discoveryClient.getInstances(TEST_APP_NAME))
             .thenReturn(Arrays.asList(serviceInstance1, serviceInstance2));
 
         List<ServiceInstance> instances = cacheSyncService.getDiscoveredInstances();
         
         assertThat(instances).hasSize(2);
-        verify(discoveryClient).getInstances(anyString());
+        verify(discoveryClient).getInstances(TEST_APP_NAME);
     }
 
     @Test
     @DisplayName("Should handle no pods discovered gracefully")
     void testEvictCacheWithNoPods() {
-        when(discoveryClient.getInstances(anyString())).thenReturn(Collections.emptyList());
+        when(discoveryClient.getInstances(TEST_APP_NAME)).thenReturn(Collections.emptyList());
 
         List<ServiceInstance> instances = cacheSyncService.getDiscoveredInstances();
 
         assertThat(instances).isEmpty();
-        verify(discoveryClient).getInstances(anyString());
+        verify(discoveryClient).getInstances(TEST_APP_NAME);
     }
 
     @Test
     @DisplayName("Should return discovered instances")
     void testGetDiscoveredInstances() {
-        when(discoveryClient.getInstances(anyString()))
+        when(discoveryClient.getInstances(TEST_APP_NAME))
             .thenReturn(Arrays.asList(serviceInstance1, serviceInstance2));
 
         List<ServiceInstance> instances = cacheSyncService.getDiscoveredInstances();
 
         assertThat(instances).hasSize(2);
-        verify(discoveryClient).getInstances(anyString());
+        verify(discoveryClient).getInstances(TEST_APP_NAME);
     }
 
     @Test
     @DisplayName("Should handle single pod scenario")
     void testSinglePodDiscovery() {
-        when(serviceInstance1.getUri()).thenReturn(URI.create("http://pod1:8080"));
-        when(serviceInstance1.getInstanceId()).thenReturn("pod1");
-        
-        when(discoveryClient.getInstances(anyString()))
+        when(discoveryClient.getInstances(TEST_APP_NAME))
             .thenReturn(Collections.singletonList(serviceInstance1));
 
         List<ServiceInstance> instances = cacheSyncService.getDiscoveredInstances();
 
         assertThat(instances).hasSize(1);
-        assertThat(instances.get(0).getInstanceId()).isEqualTo("pod1");
     }
 }

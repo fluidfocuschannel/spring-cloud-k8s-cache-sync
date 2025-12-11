@@ -7,6 +7,10 @@ spring:
       discovery:
         enabled: true
         all-namespaces: false  # Only discover services in the same namespace
+        include-pod-name: true # Add pod.name to metadata
+        metadata:
+          add-labels: true     # Include pod labels in metadata
+          add-annotations: true
         
       # Configuration for Kubernetes client
       client:
